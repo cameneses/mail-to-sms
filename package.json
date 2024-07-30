@@ -1,0 +1,20 @@
+{
+    "name": "email-to-sms",
+    "version": "1.0.0",
+    "description": "A Serverless application to convert incoming SES emails to SMS alerts using SNS.",
+    "scripts": {
+        "deploy": "serverless deploy",
+        "offline": "serverless offline start"
+    },
+    "dependencies": {
+        "aws-sdk": "^2.1030.0"
+    },
+    "devDependencies": {
+        "serverless": "^3.0.0",
+        "serverless-offline": "^8.0.0",
+        "serverless-plugin-existing-s3": "^2.4.0",
+        "serverless-python-requirements": "^5.1.0"
+    },
+    "author": "César Meneses",
+    "license": "ISC"
+}

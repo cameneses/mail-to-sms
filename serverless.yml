@@ -1,0 +1,73 @@
+service: email-to-sms-service
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: dev
+  region: us-east-1
+  environment:
+    TOPIC_NAME: ${ssm:/email-to-sms/topic-name}
+    RECIPIENT_EMAIL: ${ssm:/email-to-sms/recipient-email}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ses:Receive
+        - ses:SendEmail
+        - sns:Publish
+      Resource: "*"
+
+functions:
+  emailProcessor:
+    handler: handler.lambda_handler
+    events:
+      - ses:
+          ruleSetName: 'default'
+          eventSource:
+            account: ${self:provider.accountId}
+            region: ${self:provider.region}
+
+resources:
+  Resources:
+    SMSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:provider.environment.TOPIC_NAME}
+
+    EmailReceivingRule:
+      Type: AWS::SES::ReceiptRule
+      Properties:
+        RuleSetName: 'default'
+        Rule:
+          Name: TriggerLambda
+          Enabled: true
+          Recipients:
+            - ${self:provider.environment.RECIPIENT_EMAIL}
+          Actions:
+            - LambdaAction:
+                FunctionArn:
+                  Fn::GetAtt:
+                    - EmailProcessorLambdaFunction
+                    - Arn
+                InvocationType: Event
+          ScanEnabled: true
+
+  Outputs:
+    SMSTopicArn:
+      Description: "ARN of the SNS Topic for SMS"
+      Value:
+        Ref: SMSTopic
+    LambdaFunctionArn:
+      Description: "ARN of the Lambda function"
+      Value:
+        Fn::GetAtt:
+          - EmailProcessorLambdaFunction
+          - Arn
+
+plugins:
+  - serverless-plugin-existing-s3
+  - serverless-offline
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
